@@ -4,6 +4,7 @@ local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
+local GuiService = game:GetService("GuiService")
 
 local targetParent
 pcall(function()
@@ -242,7 +243,7 @@ task.spawn(function()
 end)
 
 ------------------------------------------------------------------------
--- 5. LÓGICA AUXILIAR DA SONDA E COMPRA
+-- 5. LÓGICA AUXILIAR DA SONDA E COMPRA (CORRIGIDO SEM GETCONNECTIONS)
 ------------------------------------------------------------------------
 local function checarInventarioPorSonda()
     local backpack = LocalPlayer:FindFirstChild("Backpack")
@@ -261,13 +262,14 @@ local function comprarSondaNaLoja()
         local btn = probeFrame and probeFrame:FindFirstChild("PurchaseButton")
         
         if btn and btn:IsA("GuiButton") then
+            -- Método nativo alternativo para forçar clique seguro sem depender do exploit
             btn:Activate()
             pcall(function()
-                local events = {"MouseButton1Click", "MouseButton1Down", "Activated"}
-                for _, event in ipairs(events) do
-                    if btn[event] then
-                        for _, signal in ipairs(getconnections(btn[event])) do signal:Fire() end
-                    end
+                GuiService.SelectedObject = btn
+                VirtualInputManager = game:GetService("VirtualInputManager")
+                if VirtualInputManager then
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
                 end
             end)
         end
@@ -290,18 +292,18 @@ end
 LocalPlayer.CharacterAdded:Connect(function(char)
     if _G.ProbeFarmActive then
         local root = char:WaitForChild("HumanoidRootPart", 5)
-        local hum = char:WaitForChild("Humanoid", 5)
-        if root and hum then
+        local humanoid = char:WaitForChild("Humanoid", 5)
+        if root and humanoid then
             root.Anchored = false
             root.Velocity = Vector3.zero
             root.RotVelocity = Vector3.zero
-            hum:ChangeState(Enum.HumanoidStateType.Physics)
+            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
         end
     end
 end)
 
 ------------------------------------------------------------------------
--- 6. LOOP PRINCIPAL DO FARM (CORRIGIDO: MOLE -> TP -> MOLE -> PROBE -> ANCORA)
+-- 6. LOOP PRINCIPAL DO FARM
 ------------------------------------------------------------------------
 _G.ProbeFarmActive = false
 
@@ -334,26 +336,24 @@ local function loopFarm()
                 if not _G.ProbeFarmActive then break end
                 root.CFrame = CFrame.new(posicaoSoloCalculada)
                 
-                -- MODIFICAÇÃO AQUI: Espera 0.15 segundos para garantir que o corpo chegou no local ANTES de usar a probe
+                -- Espera o teleporte confirmar e estabilizar
                 task.wait(0.15)
                 
-                -- PASSO 3: SOLTA A PROBE ENQUANTO AINDA ESTÁ NO MODO MOLE DENTRO DO TORNADO
+                -- PASSO 3: SOLTA A PROBE EM MODO MOLE
                 usarSonda()
-                
-                -- Pequena pausa para a física computar o arremesso/uso do item
                 task.wait(0.1) 
                 
-                -- PASSO 4: SÓ AGORA FICA DURO (ANCORA) PARA TRAVAR O BONECO NO VENTO
+                -- PASSO 4: FICA DURO (ANCORA)
                 root.Anchored = true
                 
-                -- PASSO 5: TEMPO DE ESPERA DO CICLO (30 SEGUNDOS)
+                -- PASSO 5: ESPERA DO CICLO (30 SEGUNDOS)
                 local tempoGasto = 0
                 while tempoGasto < 30 and _G.ProbeFarmActive do
                     task.wait(1)
                     tempoGasto = tempoGasto + 1
                 end
                 
-                -- PASSO 6: DESANCORA E ENTRA EM MODO MOLE ANTES DE MORRER
+                -- PASSO 6: DESANCORA E RESETA
                 root.Anchored = false
                 root.Velocity = Vector3.zero
                 humanoid:ChangeState(Enum.HumanoidStateType.Physics)
