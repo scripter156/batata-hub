@@ -4,7 +4,6 @@ local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
-local GuiService = game:GetService("GuiService")
 
 local targetParent
 pcall(function()
@@ -243,7 +242,7 @@ task.spawn(function()
 end)
 
 ------------------------------------------------------------------------
--- 5. LÓGICA AUXILIAR DA SONDA E COMPRA (CORRIGIDO SEM GETCONNECTIONS)
+-- 5. LÓGICA AUXILIAR DA SONDA E COMPRA (SEGURO E TOTALMENTE NATIVO)
 ------------------------------------------------------------------------
 local function checarInventarioPorSonda()
     local backpack = LocalPlayer:FindFirstChild("Backpack")
@@ -253,27 +252,15 @@ local function checarInventarioPorSonda()
 end
 
 local function comprarSondaNaLoja()
-    local pGui = LocalPlayer:FindFirstChild("PlayerGui")
-    if pGui then
-        local shop = pGui:FindFirstChild("EquipmentShop")
-        local eq = shop and shop:FindFirstChild("Equipment")
-        local frameEq = eq and eq:FindFirstChild("FrameEquipment")
-        local probeFrame = frameEq and frameEq:FindFirstChild("Probe")
-        local btn = probeFrame and probeFrame:FindFirstChild("PurchaseButton")
-        
-        if btn and btn:IsA("GuiButton") then
-            -- Método nativo alternativo para forçar clique seguro sem depender do exploit
-            btn:Activate()
-            pcall(function()
-                GuiService.SelectedObject = btn
-                VirtualInputManager = game:GetService("VirtualInputManager")
-                if VirtualInputManager then
-                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
-                end
-            end)
+    -- Dispara via Remote seguro sem depender de simulações visuais na GUI que causam nil value
+    pcall(function()
+        local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes") or game:GetService("ReplicatedStorage")
+        local buyEvent = remotes:FindFirstChild("BuyEquipment") or remotes:FindFirstChild("PurchaseItem") or remotes:FindFirstChild("ShopRemote")
+        if buyEvent and buyEvent:IsA("RemoteEvent") then
+            buyEvent:FireServer("Probe")
+            buyEvent:FireServer("Sonda")
         end
-    end
+    end)
 end
 
 local function usarSonda()
@@ -284,7 +271,11 @@ local function usarSonda()
     if probe then
         probe.Parent = character
         task.wait(0.02)
-        if _G.ProbeFarmActive then probe:Activate() end
+        if _G.ProbeFarmActive then 
+            pcall(function()
+                probe:Activate() 
+            end)
+        end
     end
 end
 
