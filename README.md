@@ -1,3 +1,23 @@
+local KeyCorreta = "BatataDoce123" -- Mude a chave aqui quando quiser
+local InterfaceKey = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"))
+local Frame = Instance.new("Frame", InterfaceKey)
+Frame.Size, Frame.Position, Frame.BackgroundColor3 = UDim2.new(0, 250, 0, 100), UDim2.new(0.4, 0, 0.4, 0), Color3.fromRGB(30, 30, 30)
+local CaixaTexto = Instance.new("TextBox", Frame)
+CaixaTexto.Size, CaixaTexto.Position, CaixaTexto.PlaceholderText = UDim2.new(0, 230, 0, 30), UDim2.new(0, 10, 0, 15), "Cole a Key aqui"
+local BotaoVerificar = Instance.new("TextButton", Frame)
+BotaoVerificar.Size, BotaoVerificar.Position, BotaoVerificar.Text = UDim2.new(0, 230, 0, 30), UDim2.new(0, 10, 0, 55), "Verificar Key"
+
+BotaoVerificar.MouseButton1Click:Connect(function()
+    if CaixaTexto.Text == KeyCorreta then
+        InterfaceKey:Destroy()
+        print("Chave correta! Carregando script...")
+        -- O restante do seu script principal (Auto Farm) roda aqui após o fechamento da tela
+    else
+        CaixaTexto.Text = ""
+        CaixaTexto.PlaceholderText = "KEY INCORRETA!"
+    end
+end)
+task.wait(999999) -- Bloqueia o resto do script até clicar corretamente
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
